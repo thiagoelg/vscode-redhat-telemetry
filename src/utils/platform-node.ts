@@ -3,20 +3,11 @@ import osLocale from 'os-locale';
 import getos from 'getos';
 import { LinuxOs } from 'getos';
 import { Environment } from '..';
-import { env, UIKind, version} from 'vscode';
+import { env, UIKind, version } from 'vscode';
 import { promisify } from 'util';
 import process from 'process';
 import { getCountry } from './geolocation';
-
-export const PLATFORM = getPlatform();
-export const DISTRO = getDistribution();
-export const PLATFORM_VERSION = os.release();
-export const TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-export const LOCALE = osLocale.sync().replace('_', '-');
-export const COUNTRY = getCountry(TIMEZONE);
-export const UI_KIND = getUIKind();
-export const USERNAME = getUsername();
-
+import { Platform } from './platform';
 
 function getPlatform(): string {
     const platform: string = os.platform();
@@ -36,7 +27,8 @@ async function getDistribution(): Promise<string|undefined> {
     return undefined;
 }
 
-export async function getEnvironment(extensionId: string, extensionVersion:string): Promise<Environment> {
+async function getEnvironment(extensionId: string, extensionVersion:string): Promise<Environment> {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return {
         extension: {
             name:extensionId,
@@ -45,21 +37,21 @@ export async function getEnvironment(extensionId: string, extensionVersion:strin
         application: {
             name: env.appName,
             version: version,
-            uiKind: UI_KIND,
+            uiKind: getUIKind(),
             remote: env.remoteName !== undefined
         },
         platform:{
-            name:PLATFORM,
-            version:PLATFORM_VERSION,
-            distribution: await DISTRO
+            name: getPlatform(),
+            version: os.release(),
+            distribution: await getDistribution()
         },
-        timezone:TIMEZONE,
-        locale:LOCALE,
-        country: COUNTRY,
-        username: USERNAME
+        timezone: timezone,
+        locale: env.language,
+        country: getCountry(timezone),
+        username: getUsername()
     };
 }
-function getUIKind():string {
+function getUIKind(): string {
     switch (env.uiKind) {
         case UIKind.Desktop:
             return 'Desktop';
@@ -88,3 +80,8 @@ function getUsername(): string | undefined {
     }
     return username;
 }
+
+export const PlatformNode: Platform = {
+    getEnvironment,
+}
+

@@ -1,27 +1,30 @@
-import Analytics from 'analytics-node';
-import { createHash } from 'crypto';
+import { AnalyticsBrowser } from  '@segment/analytics-next';
 import { CacheService } from '../interfaces/cacheService';
 import { Environment } from '../interfaces/environment';
 import { IdManager } from '../interfaces/idManager';
 import { TelemetryEvent } from '../interfaces/telemetry';
 import { enhance } from '../utils/events';
 import { Logger } from '../utils/logger';
-import { sha1 } from 'object-hash'
+import { sha1 } from 'object-hash';
+import { AnalyticsType } from '../utils/segmentInitializer';
+import { env, UIKind } from "vscode";
 
 /**
  * Sends Telemetry events to a segment.io backend
  */
 export class Reporter {
-  private analytics: Analytics | undefined;
+  private analytics: AnalyticsType | undefined;
   private idManager: IdManager;
   private environment: Environment;
   private cacheService?: CacheService;
+  private isBrowser: boolean = false;
 
-  constructor(analytics: Analytics | undefined, idManager: IdManager, environment: Environment, cacheService?: CacheService) {
+  constructor(analytics: AnalyticsType | undefined, idManager: IdManager, environment: Environment, cacheService?: CacheService) {
     this.analytics = analytics;
     this.idManager = idManager;
     this.environment = environment;
     this.cacheService = cacheService;
+    this.isBrowser = env.uiKind === UIKind.Web;
   }
 
     
@@ -54,7 +57,11 @@ export class Reporter {
           break;
         case 'track':
           Logger.log(`Sending 'track' event with\n${payloadString}`);
-          this.analytics?.track(payload);
+          if (!this.isBrowser) {
+            this.analytics?.track(payload);
+          } else {
+            this.analytics?.track(payload.event, payload.properties)
+          }
           break;
         case 'page':
           Logger.log(`Sending 'page' event with\n${payloadString}`);
@@ -68,6 +75,6 @@ export class Reporter {
   }
 
   public async flush(): Promise<void> {
-    this.analytics?.flush();
+    this.analytics?.flush?.();
   }
 }

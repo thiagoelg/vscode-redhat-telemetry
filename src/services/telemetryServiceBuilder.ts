@@ -44,14 +44,14 @@ export class TelemetryServiceBuilder {
         return this;
     }
 
-    public setCacheService(cacheService: CacheService): TelemetryServiceBuilder {
+    public setCacheService(cacheService?: CacheService): TelemetryServiceBuilder {
         this.cacheService = cacheService;
         return this;
     }
 
     public async build(): Promise<TelemetryService> {
         this.validate();
-        const analytics = SegmentInitializer.initialize(this.packageJson);
+        const analytics = await SegmentInitializer.initialize(this.packageJson);
         if (!this.idManager) {
             this.idManager = new FileSystemIdManager();
         }

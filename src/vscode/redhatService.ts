@@ -1,13 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ConfigurationChangeEvent, Disposable, env, Extension, ExtensionContext, window, workspace } from "vscode";
+import { ConfigurationChangeEvent, Disposable, env, ExtensionContext, UIKind, window, workspace } from "vscode";
 import { TelemetryService, TelemetryServiceBuilder } from "..";
 import { RedHatService } from "../interfaces/redhatService";
 import { FileSystemCacheService } from '../services/fileSystemCacheService';
 import { IdManagerFactory } from "../services/idManagerFactory";
 import { getExtensionId, loadPackageJson } from '../utils/extensions';
 import { Logger } from "../utils/logger";
-import { getEnvironment } from "../utils/platform-node";
+import { platform } from "../utils/platform";
 import { DEFAULT_SEGMENT_DEBUG_KEY, DEFAULT_SEGMENT_KEY, OPT_OUT_INSTRUCTIONS_URL, PRIVACY_STATEMENT_URL } from './constants';
 import { VSCodeSettings } from './settings';
 
@@ -30,11 +30,12 @@ export async function getRedHatService(context: ExtensionContext): Promise<RedHa
   const settings = new VSCodeSettings();
   const idManager = IdManagerFactory.getIdManager();
   const cachePath = path.resolve(getTelemetryWorkingDir(context), 'cache');
+  const fsCacheService = env.uiKind === UIKind.Desktop ? new FileSystemCacheService(cachePath) : undefined;
   const builder = new TelemetryServiceBuilder(packageJson)
     .setSettings(settings)
     .setIdManager(idManager)
-    .setCacheService(new FileSystemCacheService(cachePath))
-    .setEnvironment(await getEnvironment(extensionId, packageJson.version));
+    .setCacheService(fsCacheService)
+    .setEnvironment(await platform.getEnvironment(extensionId, packageJson.version));
 
   const telemetryService = await builder.build();
 
